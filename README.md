@@ -1,7 +1,7 @@
-# Flex Living – Reviews Dashboard & Public Page (v3, complete bundle)
+# Flex Living – Reviews Dashboard 
 
 ## Contents
-- index.html — light, minimal Flex-style dashboard & public page (upload JSON).
+- index.html — light, minimal Flex style dashboard & public page (upload JSON).
 - server.js — Express API: GET /api/reviews/hostaway (normalizes; mock fallback).
 - mock-reviews.json — includes Hostaway example (Shane Finkelstein).
 - assets/ — stock images mapped to listing names.
