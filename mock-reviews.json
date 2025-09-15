@@ -1,0 +1,118 @@
+{
+  "status": "success",
+  "result": [
+    {
+      "id": 1,
+      "type": "guest-to-host",
+      "status": "published",
+      "rating": null,
+      "publicReview": "Great clean flat, very responsive host. Quiet area.",
+      "reviewCategory": [
+        {
+          "category": "cleanliness",
+          "rating": 9
+        },
+        {
+          "category": "communication",
+          "rating": 10
+        },
+        {
+          "category": "respect_house_rules",
+          "rating": 10
+        }
+      ],
+      "submittedAt": "2024-02-12 10:12:00",
+      "guestName": "Anna",
+      "listingName": "Shoreditch Heights 2B",
+      "channel": "Airbnb"
+    },
+    {
+      "id": 2,
+      "type": "guest-to-host",
+      "status": "published",
+      "rating": 8,
+      "publicReview": "Nice place but a bit noisy at night.",
+      "reviewCategory": [
+        {
+          "category": "cleanliness",
+          "rating": 8
+        },
+        {
+          "category": "communication",
+          "rating": 9
+        }
+      ],
+      "submittedAt": "2024-03-05 12:00:00",
+      "guestName": "Ben",
+      "listingName": "Shoreditch Heights 2B",
+      "channel": "Booking"
+    },
+    {
+      "id": 3,
+      "type": "guest-to-host",
+      "status": "published",
+      "rating": 7,
+      "publicReview": "Small room, problems with heating, host helpful though.",
+      "reviewCategory": [
+        {
+          "category": "cleanliness",
+          "rating": 7
+        },
+        {
+          "category": "communication",
+          "rating": 9
+        }
+      ],
+      "submittedAt": "2024-03-20 09:00:00",
+      "guestName": "Cara",
+      "listingName": "Chelsea Loft A1",
+      "channel": "Google"
+    },
+    {
+      "id": 4,
+      "type": "host-to-guest",
+      "status": "published",
+      "rating": null,
+      "publicReview": "Shane and family are wonderful! Would definitely host again :)",
+      "reviewCategory": [
+        {
+          "category": "cleanliness",
+          "rating": 10
+        },
+        {
+          "category": "communication",
+          "rating": 10
+        },
+        {
+          "category": "respect_house_rules",
+          "rating": 10
+        }
+      ],
+      "submittedAt": "2020-08-21 22:45:14",
+      "guestName": "Shane Finkelstein",
+      "listingName": "2B N1 A - 29 Shoreditch Heights",
+      "channel": "Airbnb"
+    },
+    {
+      "id": 5,
+      "type": "guest-to-host",
+      "status": "pending",
+      "rating": 6,
+      "publicReview": "Dirty dishes and broken lamp. Location is good.",
+      "reviewCategory": [
+        {
+          "category": "cleanliness",
+          "rating": 5
+        },
+        {
+          "category": "communication",
+          "rating": 7
+        }
+      ],
+      "submittedAt": "2024-04-10 18:00:00",
+      "guestName": "Drew",
+      "listingName": "Camden Suite 3C",
+      "channel": "Airbnb"
+    }
+  ]
+}

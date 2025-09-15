@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flex Living – Reviews Dashboard & Public View</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    :root{
+      --bg: #FAF6ED; --surface:#FFFFFF; --ink:#1E2B26; --muted:#6E7B74;
+      --accent:#20493E; --border:#E9E4D9; --radius:14px; --pad:16px; --card-pad:24px;
+    }
+    *{box-sizing:border-box} html,body{height:100%}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+    header{position:sticky;top:0;z-index:10;background:rgba(250,246,237,.9);backdrop-filter:saturate(120%) blur(8px);border-bottom:1px solid var(--border)}
+    .wrap{max-width:1200px;margin:0 auto;padding:var(--pad)}
+    .brand{display:flex;align-items:center;gap:10px}.brand .logo{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);
+      display:flex;align-items:center;justify-content:center;color:var(--accent);font-weight:700}
+    .brand .name{font-weight:700;letter-spacing:.2px}
+    .toprow{display:flex;gap:12px;align-items:center}.spacer{flex:1}
+    .btn{all:unset;cursor:pointer;background:var(--accent);color:#fff;padding:10px 14px;border-radius:999px;font-weight:600;letter-spacing:.1px}
+    .btn.alt{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+    .controls{display:grid;grid-template-columns:1.2fr .9fr .9fr .8fr .7fr;gap:12px;margin-top:12px}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:var(--card-pad)}
+    label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
+    input[type="file"],select,input[type="month"],input[type="checkbox"],input[type="text"]{width:100%;background:#fff;color:var(--ink);
+      border:1px solid var(--border);border-radius:10px;padding:10px}
+    .pill{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);color:var(--ink);
+      padding:8px 10px;border-radius:999px;font-size:12px}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin:16px 0}
+    .footer{color:var(--muted);font-size:12px;margin:12px 0 22px}
+    .reviews-list{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .review{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px}
+    .review .meta{font-size:12px;color:var(--muted);margin-top:6px}
+    .hero{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;align-items:stretch;margin-top:12px}
+    .hero .img{display:none}
+    .hero .img.show{display:block;background-size:cover;background-position:center;border:1px solid var(--border);border-radius:var(--radius);min-height:260px}
+    .facts{display:grid;gap:12px}.fact{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px}.fact b{color:var(--accent)}
+    .divider{height:1px;background:var(--border);margin:16px 0}
+    .tabs{display:flex;gap:8px;margin-top:8px}
+    .tab{padding:8px 12px;border-radius:999px;border:1px solid var(--border);color:var(--ink);text-decoration:none}
+    .tab.active{background:#fff;border-color:var(--accent);color:var(--accent)}
+    .hint{font-size:12px;color:var(--muted);margin-top:6px}
+    .js-plotly-plot .plotly .main-svg{background:transparent!important}
+    @media (max-width: 880px){.controls{grid-template-columns:1fr;gap:10px}.grid,.grid-3{grid-template-columns:1fr}.reviews-list{grid-template-columns:1fr}.hero{grid-template-columns:1fr}}
+  
+    .chart-area { display:none; }
+    .chart-area.show { display:block; }
+
+</style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="toprow">
+        <div class="brand"><div class="logo">f</div><div class="name">the flex.</div></div>
+        <div class="spacer"></div>
+        <a id="downloadCsv" class="btn alt" download="normalized_reviews.csv">Export CSV</a>
+        <a class="btn" id="goPublic" href="#public">Public Property Page</a>
+      </div>
+      <div class="tabs">
+        <a href="#dashboard" id="tabDashboard" class="tab active">Manager Dashboard</a>
+        <a href="#public" id="tabPublic" class="tab">Public Page</a>
+      </div>
+      <div id="dashboardControls" class="controls">
+        <div class="card">
+          <label for="fileInput">Upload reviews JSON</label>
+          <input id="fileInput" type="file" accept=".json,application/json" />
+          <div class="hint">Upload your reviews JSON file to generate the dashboard.</div>
+        </div>
+        <div class="card"><label for="propertySelect">Property</label><select id="propertySelect"><option value="__all">All properties</option></select></div>
+        <div class="card"><label for="channelSelect">Channel</label><select id="channelSelect"><option value="__all">All channels</option></select></div>
+        <div class="card"><label for="dateFrom">From (month)</label><input id="dateFrom" type="month" /></div>
+        <div class="card"><label for="dateTo">To (month)</label><input id="dateTo" type="month" /></div>
+      </div>
+      <div id="dashboardPills" class="row" style="padding:6px 0 0">
+        <label class="pill"><input id="approvedOnly" type="checkbox" />&nbsp;Approved / Published only</label>
+        <label class="pill"><input id="hostToGuest" type="checkbox" />&nbsp;Include host→guest reviews</label>
+        <div class="pill">Records: <span id="recCount">0</span></div>
+        <div class="pill">Avg Rating: <span id="avgRating">–</span></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap" id="dashboardView">
+    <div class="hero">
+      <div id="heroImg" class="img"></div>
+      <div class="facts">
+        <div class="fact"><b id="heroTitle">Property:</b> <span id="heroProperty">—</span></div>
+        <div class="fact"><b>Overall Avg Rating:</b> <span id="heroAvg">—</span></div>
+        <div class="fact"><b>Reviews Count:</b> <span id="heroCount">—</span></div>
+        
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card"><div class="chart-area"><div id="avgByProperty" style="height:420px"></div></div></div>
+      <div class="card"><div class="chart-area"><div id="categoryRadar" style="height:420px"></div></div></div>
+    </div>
+    <div class="grid">
+      <div class="card"><div class="chart-area"><div id="trendRatings" style="height:420px"></div></div></div>
+      <div class="card"><div class="chart-area"><div id="channelDist" style="height:420px"></div></div></div>
+    </div>
+    <div class="grid-3">
+      <div class="card" style="grid-column: span 2"><div class="chart-area"><div id="keywords" style="height:420px"></div></div></div>
+      <div class="card"><div class="chart-area"><div id="sentimentBar" style="height:420px"></div></div></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 8px 0">Review Approvals</h3>
+      <table class="table" id="approvalsTable" style="width:100%;border-collapse:separate;border-spacing:0 8px">
+        <thead>
+          <tr style="color:var(--muted);font-size:12px">
+            <th style="text-align:left">ID</th><th style="text-align:left">Property</th><th style="text-align:left">Guest</th>
+            <th style="text-align:left">Rating</th><th style="text-align:left">Excerpt</th><th style="text-align:left">Approved</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="hint">Toggle “Approved” to select reviews that will appear on the Public Page.</div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3 style="margin:0 0 8px 0">Google Reviews (Exploration)</h3>
+        <div class="row" style="gap:12px">
+          <div style="flex:1"><label for="googleApiKey">Google API Key (Places API)</label><input id="googleApiKey" type="text" placeholder="Paste your Google API Key" /></div>
+          <div style="flex:1"><label for="googlePlaceId">Place ID</label><input id="googlePlaceId" type="text" placeholder="Enter Google Place ID" /></div>
+          <button id="btnLoadGoogle" class="btn">Fetch Google Reviews</button>
+        </div>
+        <div class="divider"></div>
+        <div id="googleReviews" class="reviews-list"></div></div>
+    </div>
+  </main>
+
+  <main class="wrap" id="publicView" style="display:none">
+    <div class="hero">
+      <div id="publicImg" class="img"></div>
+      <div class="facts">
+        <div class="fact"><b>Property:</b> <span id="publicTitle">—</span></div>
+        <div class="fact"><b>Location:</b> <span>Central</span></div>
+        <div class="fact"><b>Amenities:</b> <span>Wi‑Fi • Kitchen • Washer • Workspace</span></div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="card">
+      <h2 style="margin:0 0 8px 0">Guest Reviews</h2>
+      <div id="publicReviews" class="reviews-list"></div>
+      <div class="hint">Only manager‑approved or published guest‑to‑host reviews are shown.</div>
+    </div>
+  </main>
+
+<script>
+/* ===== Property images (hard-wired) ===== */
+const LISTING_IMAGES = new Map([
+  ["2B N1 A - 29 Shoreditch Heights", "assets/pexels-jibarofoto-2111768.jpg"],
+  ["Shoreditch Heights 2B", "assets/pexels-sevenstormphotography-981916.jpg"],
+  ["Chelsea Loft A1", "assets/pexels-fotoaibe-1571460.jpg"],
+  ["Camden Suite 3C", "assets/pexels-sevenstormphotography-981916.jpg"],
+]);
+function setHeroImageForProperty(prop){
+  const manual = document.getElementById('imageUrl');
+  const el = document.getElementById('heroImg');
+  let url = (manual && manual.value.trim()) ? manual.value.trim() : LISTING_IMAGES.get(prop);
+  if(url){ el.classList.add('show'); el.style.backgroundImage = `url('${url}')`; }
+  else{ el.classList.remove('show'); el.style.backgroundImage = 'none'; }
+}
+function setPublicImageForProperty(prop){
+  const el = document.getElementById('publicImg');
+  let url = LISTING_IMAGES.get(prop);
+  if(url){ el.classList.add('show'); el.style.backgroundImage = `url('${url}')`; }
+  else{ el.classList.remove('show'); el.style.backgroundImage = 'none'; }
+}
+
+/* ===== Shared utils ===== */
+const STOPWORDS = new Set((`
+  a about above after again against all am an and any are aren't as at be because been
+  before being below between both but by can't cannot could couldn't did didn't do does
+  doesn't doing don't down during each few for from further had hadn't has hasn't have
+  haven't having he he'd he'll he's her here here's hers herself him himself his how
+  how's i i'd i'll i'm i've if in into is isn't it it's its itself let's me more most
+  mustn't my myself no nor not of off on once only or other ought our ours ourselves
+  out over own same shan't she she'd she'll she's should shouldn't so some such than that
+  that's the their theirs them themselves then there there's these they they'd they'll
+  they're they've this those through to too under until up very was wasn't we we'd we'll
+  we're we've were weren't what what's when when's where where's which while who who's
+  whom why why's with won't would wouldn't you you'd you'll you're you've your yours
+  yourself yourselves
+`).split(/\s+/).filter(Boolean));
+const POSITIVE = new Set(['clean','friendly','responsive','great','amazing','wonderful','perfect','quiet','spacious','comfortable','easy','helpful','good','excellent','nice','love','loved','recommend','fast']);
+const NEGATIVE = new Set(['dirty','noisy','slow','bad','rude','cold','hot','small','broken','issue','issues','problem','problems','difficult','hard','smell','smelly','late','delay','delayed']);
+
+function parseDate(s){ if(!s) return null; const d=new Date(String(s).replace(' ','T')); return isNaN(d)? null : d; }
+function monthKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+function csvEscape(v){ const s=String(v??''); return /[\",\n]/.test(s)? '"'+s.replaceAll('"','""')+'"' : s; }
+
+function normalize(raw){
+  const arr = Array.isArray(raw) ? raw : (raw?.result ?? []);
+  const rows = arr.map((r,i)=>{
+    let rating = (r.rating ?? null);
+    if(rating == null && Array.isArray(r.reviewCategory) && r.reviewCategory.length){
+      const nums = r.reviewCategory.map(c=>Number(c.rating)).filter(n=>!isNaN(n));
+      if(nums.length) rating = nums.reduce((a,b)=>a+b,0)/nums.length;
+    }
+    const submittedAt = parseDate(r.submittedAt || r.createdAt || r.date || r.updatedAt);
+    const channel = r.channel || r.source || r.platform || 'unknown';
+    const type = r.type || 'guest-to-host';
+    const approved = (r.approved === true) || (r.status === 'published');
+    const listing = r.listingName || r.listing || r.property || r.propertyName || 'Unspecified Listing';
+
+    const cats = {};
+    if(Array.isArray(r.reviewCategory)) r.reviewCategory.forEach(c=>{ cats[c.category] = Number(c.rating); });
+    else if (r.categories && typeof r.categories === 'object') Object.entries(r.categories).forEach(([k,v])=>{ cats[k]=Number(v); });
+
+    return { id:r.id ?? i, listing, guestName:r.guestName || r.author || r.user || 'Guest',
+      type, channel, approved,
+      rating: (rating!=null && !isNaN(Number(rating))) ? Number(rating) : null,
+      categories: cats,
+      text: r.publicReview || r.text || r.comment || '',
+      submittedAt, month: submittedAt? monthKey(submittedAt): null
+    };
+  });
+  return rows.filter(x=>x.submittedAt);
+}
+
+/* ===== State & filters ===== */
+let ALL_ROWS = []; let FILTERED = [];
+function getApprovals(){ try{return JSON.parse(localStorage.getItem('fl_approvals')||'{}');}catch(e){return {}} }
+function setApprovals(m){ localStorage.setItem('fl_approvals', JSON.stringify(m)); }
+
+function applyFilters(rows){
+  const prop = document.getElementById('propertySelect').value;
+  const channel = document.getElementById('channelSelect').value;
+  const approvedOnly = document.getElementById('approvedOnly').checked;
+  const includeHostToGuest = document.getElementById('hostToGuest').checked;
+  const df = document.getElementById('dateFrom').value;
+  const dt = document.getElementById('dateTo').value;
+
+  let out = rows.slice();
+  if(prop && prop!=="__all") out = out.filter(r=>r.listing===prop);
+  if(channel && channel!=="__all") out = out.filter(r=>r.channel===channel);
+  if(approvedOnly) out = out.filter(r=> (getApprovals()[r.id] === true) || r.approved );
+  if(!includeHostToGuest) out = out.filter(r=>r.type !== 'host-to-guest');
+  if(df){ const d = new Date(df+"-01"); out = out.filter(r=>r.submittedAt >= d); }
+  if(dt){ const d = new Date(dt+"-01"); d.setMonth(d.getMonth()+1); out = out.filter(r=>r.submittedAt < d); }
+  return out;
+}
+
+function computeMetrics(rows){
+  const byProp=new Map(), byMonth=new Map(), byChannel=new Map(), allCats=new Set();
+  rows.forEach(r=>{
+    if(!byProp.has(r.listing)) byProp.set(r.listing,{ratings:[],cats:{}});
+    const p=byProp.get(r.listing);
+    if(r.rating!=null) p.ratings.push(r.rating);
+    Object.entries(r.categories).forEach(([k,v])=>{ allCats.add(k); if(!p.cats[k]) p.cats[k]=[]; if(!isNaN(v)) p.cats[k].push(Number(v)); });
+    if(r.month){ if(!byMonth.has(r.month)) byMonth.set(r.month,{ratings:[],count:0}); const m=byMonth.get(r.month); if(r.rating!=null) m.ratings.push(r.rating); m.count++; }
+    byChannel.set(r.channel,(byChannel.get(r.channel)||0)+1);
+  });
+  const avgByProperty = Array.from(byProp.entries()).map(([listing,o])=>({listing,avg:o.ratings.length?o.ratings.reduce((a,b)=>a+b,0)/o.ratings.length:null,count:o.ratings.length})).sort((a,b)=>(b.avg??-Infinity)-(a.avg??-Infinity));
+  const categories = Array.from(allCats);
+  const portfolioCat = Object.fromEntries(categories.map(c=>[c,0])), counts = Object.fromEntries(categories.map(c=>[c,0]));
+  rows.forEach(r=>{ categories.forEach(c=>{ const v=r.categories[c]; if(v!=null&&!isNaN(v)){ portfolioCat[c]+=Number(v); counts[c]+=1; } }) });
+  const portfolioCatAvg = Object.fromEntries(categories.map(c=>[c,counts[c]? portfolioCat[c]/counts[c] : null]));
+  const perPropCatAvg = {}; byProp.forEach((o,listing)=>{ const out={}; categories.forEach(c=>{ const arr=o.cats[c]||[]; out[c]=arr.length? arr.reduce((a,b)=>a+b,0)/arr.length : null; }); perPropCatAvg[listing]=out; });
+  const months = Array.from(byMonth.entries()).sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>({month:k,avg:v.ratings.length? v.ratings.reduce((a,b)=>a+b,0)/v.ratings.length:null,count:v.count}));
+  const words=new Map(); let pos=0,neg=0,neu=0; rows.forEach(r=>{ const tokens=(r.text||'').toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(Boolean); let s=0; tokens.forEach(t=>{ if(!STOPWORDS.has(t)) words.set(t,(words.get(t)||0)+1); if(POSITIVE.has(t)) s++; if(NEGATIVE.has(t)) s--; }); if(s>0)pos++; else if(s<0)neg++; else neu++; });
+  const topWords = Array.from(words.entries()).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  const ratings = rows.map(r=>r.rating).filter(v=>v!=null);
+  const overallAvg = ratings.length? ratings.reduce((a,b)=>a+b,0)/ratings.length : null;
+  return {avgByProperty, perPropCatAvg, portfolioCatAvg, categories, months, channelCounts:byChannel, topWords, sentiment:{pos,neg,neu}, overallAvg};
+}
+
+function drawCharts(rows){
+  FILTERED = rows;
+  const m = computeMetrics(rows);
+  document.getElementById('recCount').textContent = rows.length;
+  document.getElementById('avgRating').textContent = m.overallAvg? m.overallAvg.toFixed(2): '–';
+  const selProp = document.getElementById('propertySelect').value;
+  const prop = (selProp && selProp!=='__all')? selProp : (m.avgByProperty[0]?.listing || '—');
+  document.getElementById('heroProperty').textContent = prop;
+  document.getElementById('heroCount').textContent = rows.length;
+  document.getElementById('heroAvg').textContent = m.overallAvg? m.overallAvg.toFixed(2): '—';
+  setHeroImageForProperty(prop);
+
+  const propNames = m.avgByProperty.map(x=>x.listing);
+  const propAvg = m.avgByProperty.map(x=>x.avg);
+  Plotly.newPlot('avgByProperty', [{type:'bar',x:propNames,y:propAvg,hovertemplate:'%{x}<br>Avg: %{y:.2f}<extra></extra>'}], {
+    title:{text:'Average Rating per Property'},
+    paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+    margin:{t:40,l:40,r:40,b:80},
+    xaxis:{tickangle:-20, automargin:true, color:getComputedStyle(document.documentElement).getPropertyValue('--muted')},
+    yaxis:{title:'Avg Rating', color:getComputedStyle(document.documentElement).getPropertyValue('--muted')},
+    font:{color:getComputedStyle(document.documentElement).getPropertyValue('--ink')}
+  }, {responsive:true, displayModeBar:false});
+
+  const cats = m.categories;
+  const propVals = prop? cats.map(c=> m.perPropCatAvg[prop]?.[c] ?? null ): cats.map(_=>null);
+  const portVals = cats.map(c=> m.portfolioCatAvg[c] ?? null);
+  const theta = cats.map(c=> c.replaceAll('_',' '));
+  Plotly.newPlot('categoryRadar', [
+    {type:'scatterpolar', r:portVals, theta, fill:'toself', name:'Portfolio Avg'},
+    {type:'scatterpolar', r:propVals, theta, fill:'toself', name: prop||'—'}
+  ], {
+    title:{text:'Category Breakdown (Radar)'},
+    paper_bgcolor:'rgba(0,0,0,0)',
+    polar:{radialaxis:{visible:true,range:[0,10], color:getComputedStyle(document.documentElement).getPropertyValue('--muted')}},
+    margin:{t:40,l:40,r:40,b:20}, legend:{orientation:'h'},
+    font:{color:getComputedStyle(document.documentElement).getPropertyValue('--ink')}
+  }, {responsive:true, displayModeBar:false});
+
+  const months = m.months.map(x=>x.month), monthAvg = m.months.map(x=>x.avg), monthCount = m.months.map(x=>x.count);
+  Plotly.newPlot('trendRatings',[{type:'scatter', x:months, y:monthAvg, mode:'lines+markers', name:'Avg Rating', yaxis:'y1'},{type:'bar', x:months, y:monthCount, name:'Review Count', yaxis:'y2', opacity:0.45}],{
+    title:{text:'Review Trends Over Time'},
+    paper_bgcolor:'rgba(0,0,0,0)', barmode:'overlay',
+    xaxis:{title:'Month', type:'category', tickangle:-20, color:getComputedStyle(document.documentElement).getPropertyValue('--muted')},
+    yaxis:{title:'Avg Rating', rangemode:'tozero', color:getComputedStyle(document.documentElement).getPropertyValue('--muted')},
+    yaxis2:{title:'Count', overlaying:'y', side:'right', color:getComputedStyle(document.documentElement).getPropertyValue('--muted')},
+    margin:{t:40,l:40,r:40,b:90}, legend:{orientation:'h', x:0, y:-0.2},
+    font:{color:getComputedStyle(document.documentElement).getPropertyValue('--ink')}
+  , hovermode:'x unified'},{responsive:true, displayModeBar:false});
+
+  const chs = Array.from(m.channelCounts.keys());
+  const chVals = chs.map(k=> m.channelCounts.get(k));
+  Plotly.newPlot('channelDist', [{type:'pie', labels:chs, values:chVals, hole:.55}], {
+    title:{text:'Channel Distribution'},
+    paper_bgcolor:'rgba(0,0,0,0)',
+    margin:{t:40,l:40,r:40,b:10},
+    font:{color:getComputedStyle(document.documentElement).getPropertyValue('--ink')}
+  }, {responsive:true, displayModeBar:false});
+
+  Plotly.newPlot('keywords', [{type:'bar', x:m.topWords.map(x=>x[1]).reverse(), y:m.topWords.map(x=>x[0]).reverse().map(w=> w.length>18? w.slice(0,18)+'…': w), orientation:'h', hovertemplate:'%{y}: %{x}<extra></extra>'}], {
+    title:{text:'Frequent Keywords'},
+    paper_bgcolor:'rgba(0,0,0,0)',
+    margin:{t:40,l:120,r:40,b:40},
+    xaxis:{title:'Frequency', color:getComputedStyle(document.documentElement).getPropertyValue('--muted')},
+    yaxis:{color:getComputedStyle(document.documentElement).getPropertyValue('--muted')},
+    font:{color:getComputedStyle(document.documentElement).getPropertyValue('--ink')}
+  }, {responsive:true, displayModeBar:false});
+
+  const s = m.sentiment;
+  Plotly.newPlot('sentimentBar', [{type:'bar', x:['Positive','Neutral','Negative'], y:[s.pos,s.neu,s.neg], hovertemplate:'%{x}: %{y}<extra></extra>'}], {
+    title:{text:'Sentiment Analysis'},
+    paper_bgcolor:'rgba(0,0,0,0)',
+    margin:{t:40,l:40,r:40,b:40},
+    xaxis:{color:getComputedStyle(document.documentElement).getPropertyValue('--muted')},
+    yaxis:{color:getComputedStyle(document.documentElement).getPropertyValue('--muted')},
+    font:{color:getComputedStyle(document.documentElement).getPropertyValue('--ink')}
+  }, {responsive:true, displayModeBar:false});
+
+  // approvals table
+  const approvals = getApprovals();
+  const tbody = document.querySelector('#approvalsTable tbody');
+  tbody.innerHTML = '';
+  rows.slice(0,300).forEach(r=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${r.id}</td><td>${r.listing}</td><td>${r.guestName}</td><td>${r.rating??'—'}</td><td>${(r.text||'').slice(0,80)}${(r.text||'').length>80?'…':''}</td><td><input type="checkbox" ${approvals[r.id]?'checked':''} /></td>`;
+    const cb = tr.querySelector('input[type="checkbox"]');
+    cb.addEventListener('change', ()=>{ approvals[r.id] = cb.checked; setApprovals(approvals); });
+    tbody.appendChild(tr);
+  });
+}
+
+function populateFilters(rows){
+  const propSel = document.getElementById('propertySelect');
+  const chSel  = document.getElementById('channelSelect');
+  const props = Array.from(new Set(rows.map(r=>r.listing))).sort();
+  const chs   = Array.from(new Set(rows.map(r=>r.channel))).sort();
+  propSel.innerHTML = '<option value="__all">All properties</option>' + props.map(p=>`<option>${p}</option>`).join('');
+  chSel.innerHTML   = '<option value="__all">All channels</option>' + chs.map(c=>`<option>${c}</option>`).join('');
+  const months = rows.map(r=>r.month).filter(Boolean).sort();
+  if(months.length){ document.getElementById('dateFrom').value = months[0]; document.getElementById('dateTo').value = months[months.length-1]; }
+}
+
+
+function handleData(raw){
+  document.querySelectorAll('.chart-area').forEach(el=>el.classList.add('show'));
+
+  ALL_ROWS = normalize(raw);
+  populateFilters(ALL_ROWS);
+  drawCharts(applyFilters(ALL_ROWS));
+  // export
+  const header = ['id','listing','guestName','type','channel','approved','rating','submittedAt','text'];
+  const csv = [header.join(',')].concat(ALL_ROWS.map(r=> header.map(h=>{
+    const v = h==='submittedAt' ? (r.submittedAt?.toISOString()||'') : (h==='text'? r.text : r[h]);
+    return csvEscape(v);
+  }).join(','))).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  document.getElementById('downloadCsv').href = URL.createObjectURL(blob);
+}
+
+function renderPublic(){
+  const sel = document.getElementById('propertySelect').value;
+  const prop = (sel && sel!=='__all')? sel : (ALL_ROWS[0]?.listing || '—');
+  document.getElementById('publicTitle').textContent = prop;
+  setPublicImageForProperty(prop);
+  const approvals = getApprovals();
+  const rows = ALL_ROWS.filter(r => r.listing===prop && (approvals[r.id]===true || r.approved===true) && r.type!=='host-to-guest');
+  const container = document.getElementById('publicReviews');
+  container.innerHTML='';
+  if(!rows.length){ container.innerHTML='<div class="hint">No approved reviews yet.</div>'; return; }
+  rows.forEach(r=>{
+    const div = document.createElement('div');
+    div.className='review';
+    div.innerHTML = `<div>${r.text || '(no text)'}</div><div class="meta">★ ${r.rating ?? '—'} • ${r.guestName} • ${r.channel} • ${r.submittedAt?.toISOString().slice(0,10)}</div>`;
+    container.appendChild(div);
+  });
+}
+
+/* ===== Google Reviews demo ===== */
+async function fetchGoogleReviews(apiKey, placeId){
+  const url = `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}?fields=reviews`;
+  const res = await fetch(url, { headers: { 'X-Goog-Api-Key': apiKey, 'Accept': 'application/json' }});
+  if(!res.ok) throw new Error('Google Places error: '+res.status);
+  const data = await res.json();
+  return data.reviews || [];
+}
+async function onFetchGoogle(){
+  const apiKey=document.getElementById('googleApiKey').value.trim();
+  const place=document.getElementById('googlePlaceId').value.trim();
+  const box=document.getElementById('googleReviews'); box.innerHTML='<div class="hint">Loading…</div>';
+  try{
+    const reviews = await fetchGoogleReviews(apiKey, place);
+    if(!reviews.length){ box.innerHTML='<div class="hint">No Google reviews found.</div>'; return; }
+    box.innerHTML='';
+    reviews.slice(0,5).forEach(r=>{
+      const div=document.createElement('div'); div.className='review';
+      const rating=r.rating ?? '—', author=r.authorAttribution?.displayName ?? 'Google user', time=r.publishTime? new Date(r.publishTime).toISOString().slice(0,10):'';
+      div.innerHTML = `<div>${r.originalText?.text || '(no text)'}</div><div class="meta">★ ${rating} • ${author} • ${time}</div>`;
+      box.appendChild(div);
+    });
+  }catch(e){ box.innerHTML='<div class="hint">Error: '+e.message+'</div>'; }
+}
+
+/* ===== Routing & events ===== */
+function showView(hash){
+  const dash=document.getElementById('dashboardView');
+  const pub=document.getElementById('publicView');
+  const tD=document.getElementById('tabDashboard');
+  const tP=document.getElementById('tabPublic');
+  const controls=document.getElementById('dashboardControls');
+  const pills=document.getElementById('dashboardPills');
+  if(hash==='#public'){
+    dash.style.display='none'; pub.style.display='block';
+    tD.classList.remove('active'); tP.classList.add('active');
+    controls.style.display='none'; pills.style.display='none';
+    renderPublic();
+  }else{
+    dash.style.display='block'; pub.style.display='none';
+    tP.classList.remove('active'); tD.classList.add('active');
+    controls.style.display='grid'; pills.style.display='flex';
+  }
+}
+window.addEventListener('hashchange', ()=> showView(location.hash));
+document.getElementById('tabDashboard').addEventListener('click', ()=> showView('#dashboard'));
+document.getElementById('tabPublic').addEventListener('click', ()=> showView('#public'));
+document.getElementById('goPublic').addEventListener('click', ()=> showView('#public'));
+document.getElementById('btnLoadGoogle').addEventListener('click', onFetchGoogle);
+
+document.getElementById('fileInput').addEventListener('change', (e)=>{
+  const f=e.target.files?.[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=()=>{ try{ const json=JSON.parse(reader.result); handleData(json);}catch(err){ alert('Could not parse JSON: '+err.message);} };
+  reader.readAsText(f);
+});
+document.getElementById('imageUrl').addEventListener('input', (e)=>{
+  const url=e.target.value.trim();
+  const el=document.getElementById('heroImg');
+  if(url){ el.classList.add('show'); el.style.backgroundImage=`url('${url}')`; }
+  else{ el.classList.remove('show'); el.style.backgroundImage='none'; }
+});
+['propertySelect','channelSelect','dateFrom','dateTo','approvedOnly','hostToGuest']
+  .forEach(id=> document.getElementById(id).addEventListener('input', ()=>{ drawCharts(applyFilters(ALL_ROWS)); }));
+showView(location.hash||'#dashboard');
+</script>
+</body>
+</html>
